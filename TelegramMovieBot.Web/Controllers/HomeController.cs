@@ -9,12 +9,14 @@ namespace TelegramMovieBot.Web.Controllers
     {
         public IActionResult Index()
         {
-            Telegram telegram = new Telegram("1335790071:AAHjvauoB_TTwxaYBtBld_XA7znIvL_Iyis");
+            Telegram telegram = new Telegram(Static.TOKEN);
             //telegram.SetWebhookAsync("https://73056832c009.ngrok.io");
 
-            var message = telegram.GetData(Request.Body);
+            var message = telegram.GetChat(Request.Body);
+            telegram.Explode(message);
 
-            telegram.SendMessageAsync("selam, bu mesaj otomatik olarak yazıldı.");
+
+            //telegram.SendMessageAsync("selam, bu mesaj otomatik olarak yazıldı.");
             return View();
         }
     }

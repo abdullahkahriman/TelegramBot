@@ -1,6 +1,5 @@
 ﻿using Newtonsoft.Json.Linq;
 using System;
-using System.Collections.Generic;
 using System.IO;
 using System.Net;
 using System.Text;
@@ -42,7 +41,7 @@ namespace TelegramMovieBot.Core
             }
         }
 
-        public Message GetData(Stream stream)
+        public Message GetChat(Stream stream)
         {
             try
             {
@@ -58,6 +57,30 @@ namespace TelegramMovieBot.Core
             catch (Exception e)
             {
                 return null;
+            }
+        }
+
+        public void Explode(Message message)
+        {
+            string result = string.Empty;
+
+            if (message != null)
+            {
+                string messageText = message.Text?.ToLower();
+                switch (messageText)
+                {
+                    case "selam":
+                        result = $"Selam :)";
+                        break;
+                    case "naber":
+                        result = $"İyidir, senden naber?";
+                        break;
+                    default:
+                        result = "Üzgünüm, anlamadım.";
+                        break;
+                }
+
+                SendMessageAsync(result);
             }
         }
 

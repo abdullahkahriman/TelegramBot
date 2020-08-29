@@ -2,7 +2,6 @@
 
 namespace TelegramMovieBot.Core
 {
-
     public class Message
     {
         [JsonProperty(PropertyName = "text")]
