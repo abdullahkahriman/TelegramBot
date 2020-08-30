@@ -33,7 +33,6 @@ namespace TelegramMovieBot.Core
                     url = url
                 };
                 webhookUrl = url;
-
                 await RequestAsync("setWebhook", obj);
             }
         }
@@ -96,6 +95,18 @@ namespace TelegramMovieBot.Core
             }
         }
 
+        async void SendDiceAsync()
+        {
+            if (!string.IsNullOrEmpty(this._chatID))
+            {
+                var obj = new
+                {
+                    chat_id = this._chatID
+                };
+                await RequestAsync("sendDice", obj);
+            }
+        }
+
         public Message GetChat(Stream stream)
         {
             try
@@ -133,6 +144,9 @@ Film önerisi /film, dizi önerisi için /dizi yazman yeterli.", message.Chat.Na
                         break;
                     case "naber":
                         result = $"İyidir, senden naber?";
+                        break;
+                    case "/animasyon":
+                        SendDiceAsync();
                         break;
                     case "/film":
                         SendChatActionAsync(Static.ChatAction.Photo);
