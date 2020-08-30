@@ -1,5 +1,5 @@
-# TelegramMovieBot
-Telegram movie bot
+# Telegram Bot
+Telegram bot
 
 ## Komutlar
 - /film - Film önerir
