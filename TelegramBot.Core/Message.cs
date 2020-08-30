@@ -1,6 +1,6 @@
 ﻿using Newtonsoft.Json;
 
-namespace TelegramMovieBot.Core
+namespace TelegramBot.Core
 {
     public class Message
     {

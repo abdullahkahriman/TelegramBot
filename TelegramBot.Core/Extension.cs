@@ -4,7 +4,7 @@ using System.ComponentModel;
 using System.Globalization;
 using System.Linq;
 
-namespace TelegramMovieBot.Core
+namespace TelegramBot.Core
 {
     public static class Extension
     {

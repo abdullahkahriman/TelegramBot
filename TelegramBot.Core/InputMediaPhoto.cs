@@ -1,4 +1,4 @@
-﻿namespace TelegramMovieBot.Core
+﻿namespace TelegramBot.Core
 {
     public class InputMediaPhoto
     {

@@ -1,6 +1,6 @@
 ﻿using System.ComponentModel;
 
-namespace TelegramMovieBot.Core
+namespace TelegramBot.Core
 {
     public static class Static
     {

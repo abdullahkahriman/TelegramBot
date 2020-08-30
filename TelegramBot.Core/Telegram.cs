@@ -8,9 +8,9 @@ using System.Net;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using static TelegramMovieBot.Core.Static;
+using static TelegramBot.Core.Static;
 
-namespace TelegramMovieBot.Core
+namespace TelegramBot.Core
 {
     public class Telegram
     {

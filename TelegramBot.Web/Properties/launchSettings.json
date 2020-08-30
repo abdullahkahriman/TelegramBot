@@ -15,7 +15,7 @@
         "ASPNETCORE_ENVIRONMENT": "Development"
       }
     },
-    "TelegramMovieBot.Web": {
+    "TelegramBot.Web": {
       "commandName": "Project",
       "launchBrowser": true,
       "environmentVariables": {

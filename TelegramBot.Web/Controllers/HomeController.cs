@@ -1,9 +1,6 @@
-﻿using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Mvc;
-using System.Net;
-using TelegramMovieBot.Core;
+﻿using Microsoft.AspNetCore.Mvc;
 
-namespace TelegramMovieBot.Web.Controllers
+namespace TelegramBot.Web.Controllers
 {
     public class HomeController : Controller
     {
