@@ -1,9 +1,14 @@
 ﻿using Newtonsoft.Json.Linq;
+using RestSharp;
 using System;
+using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Net;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
+using static TelegramMovieBot.Core.Static;
 
 namespace TelegramMovieBot.Core
 {
@@ -12,6 +17,7 @@ namespace TelegramMovieBot.Core
         private const string API_URL = "https://api.telegram.org/bot";
         private string _token;
         private string _chatID;
+        private static string webhookUrl;
 
         public Telegram(string token)
         {
@@ -20,12 +26,16 @@ namespace TelegramMovieBot.Core
 
         public async void SetWebhookAsync(string url)
         {
-            var obj = new
+            if (string.IsNullOrEmpty(webhookUrl))
             {
-                url = url
-            };
+                var obj = new
+                {
+                    url = url
+                };
+                webhookUrl = url;
 
-            await RequestAsync("setWebhook", obj);
+                await RequestAsync("setWebhook", obj);
+            }
         }
 
         public async void SendMessageAsync(string message)
@@ -38,6 +48,51 @@ namespace TelegramMovieBot.Core
                     text = message
                 };
                 await RequestAsync("sendMessage", obj);
+            }
+        }
+
+        public async void SendPhotoAsync(string photoUrl, string caption = "")
+        {
+            if (!string.IsNullOrEmpty(photoUrl) && !string.IsNullOrEmpty(this._chatID))
+            {
+                var obj = new
+                {
+                    chat_id = this._chatID,
+                    photo = photoUrl,
+                    caption = caption
+                };
+                await RequestAsync("sendPhoto", obj);
+            }
+        }
+
+        /// <summary>
+        /// Min 2, Max 10 photo
+        /// </summary>
+        /// <param name="inputMediaPhotos"></param>
+        public async void SendMediaPhotoGroupAsync(List<InputMediaPhoto> inputMediaPhotos)
+        {
+            if (inputMediaPhotos != null && inputMediaPhotos.Count >= 1 &&
+                !string.IsNullOrEmpty(this._chatID))
+            {
+                var obj = new
+                {
+                    chat_id = this._chatID,
+                    media = (inputMediaPhotos.Count > 9 ? inputMediaPhotos.Take(9) : inputMediaPhotos).ToJson()
+                };
+                await RequestAsync("sendMediaGroup", obj);
+            }
+        }
+
+        async void SendChatActionAsync(ChatAction chatAction)
+        {
+            if (!string.IsNullOrEmpty(this._chatID))
+            {
+                var obj = new
+                {
+                    chat_id = this._chatID,
+                    action = chatAction.GetDescription()
+                };
+                await RequestAsync("sendChatAction", obj);
             }
         }
 
@@ -60,7 +115,7 @@ namespace TelegramMovieBot.Core
             }
         }
 
-        public void Explode(Message message)
+        public async void ExplodeAsync(Message message)
         {
             string result = string.Empty;
 
@@ -69,18 +124,42 @@ namespace TelegramMovieBot.Core
                 string messageText = message.Text?.ToLower();
                 switch (messageText)
                 {
+                    case "/start":
+                        result = string.Format(@"Hoş geldin, {0}
+Film önerisi /film, dizi önerisi için /dizi yazman yeterli.", message.Chat.Name);
+                        break;
                     case "selam":
                         result = $"Selam :)";
                         break;
                     case "naber":
                         result = $"İyidir, senden naber?";
                         break;
+                    case "/film":
+                        SendChatActionAsync(Static.ChatAction.Photo);
+
+                        List<GithubMovie> movies = await RequestGithubMovieAsync();
+                        if (movies != null)
+                        {
+                            List<InputMediaPhoto> inputMediaPhotos = movies.Select(c => new InputMediaPhoto()
+                            {
+                                media = c.posterurl,
+                                caption = string.Format("Title: {0}\nYear: {1}\nActors: {2}", c.title, c.year, string.Join(", ", c.actors))
+                            }).ToList();
+                            SendMediaPhotoGroupAsync(inputMediaPhotos);
+                        }
+                        else
+                            result = "Üzgünüm, film bulamadım.";
+                        break;
+                    case "/dizi":
+                        result = "Üzgünüm, şu an bu kısım aktif değil.";
+                        break;
                     default:
                         result = "Üzgünüm, anlamadım.";
                         break;
                 }
 
-                SendMessageAsync(result);
+                if (!string.IsNullOrEmpty(result))
+                    SendMessageAsync(result);
             }
         }
 
@@ -115,10 +194,6 @@ namespace TelegramMovieBot.Core
                     dataStream.Close();
 
                     return responseFromServer;
-
-                    //WebResponse response = request.GetResponse();
-                    //Stream responseStream = response.GetResponseStream();
-                    //return new StreamReader(responseStream).ReadToEnd();
                 }
                 catch (Exception e)
                 {
@@ -133,6 +208,46 @@ namespace TelegramMovieBot.Core
             });
 
             return responseText;
+        }
+
+        async Task<List<GithubMovie>> RequestGithubMovieAsync()
+        {
+            string url = "https://raw.githubusercontent.com/FEND16/movie-json-data/master/json/movies-in-theaters.json";
+            HttpWebRequest request = null;
+            WebResponse response = null;
+
+            List<GithubMovie> responses = await Task.Run(() =>
+            {
+                try
+                {
+                    request = (HttpWebRequest)WebRequest.Create(url);
+                    request.Method = "GET";
+                    request.Timeout = 20000;
+                    request.Accept = "application/json";
+                    request.ContentType = "application/json; charset=UTF-8";
+
+                    response = request.GetResponse();
+                    StreamReader sr = new StreamReader(response.GetResponseStream());
+
+                    List<GithubMovie> result = sr.ReadToEnd().FromJson<List<GithubMovie>>()
+                    .Take(3)
+                    .OrderBy(c => Guid.NewGuid())
+                    .ToList();
+                    return result;
+                }
+                catch (Exception e)
+                {
+                    Console.WriteLine("Error: " + e.Message);
+                }
+                finally
+                {
+                    if (response != null)
+                        response.Close();
+                }
+                return null;
+            });
+
+            return responses;
         }
     }
 }
