@@ -5,6 +5,7 @@ Telegram bot
 - /film - Film önerir
 - /dizi - Dizi önerir
 - /animasyon - Animasyon gönderir
+- /anket - Anket yapılır
 
 ## Ngrok
 - ngrok http 55665 -host-header="localhost:55665" [webhook callback url]
