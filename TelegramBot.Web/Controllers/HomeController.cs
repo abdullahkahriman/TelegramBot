@@ -1,4 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using TelegramBot.Core;
+using TelegramBot.Core.Model;
 
 namespace TelegramBot.Web.Controllers
 {
@@ -7,10 +9,11 @@ namespace TelegramBot.Web.Controllers
         public IActionResult Index()
         {
             Telegram telegram = new Telegram(Static.TOKEN);
-            telegram.SetWebhookAsync("https://49c665081276.ngrok.io");
+            telegram.SetWebhookAsync("https://4d2fc7a4ad54.ngrok.io");
 
-            var message = telegram.GetChat(Request.Body);
-            telegram.ExplodeAsync(message);
+            Message message = telegram.GetChat(Request.Body);
+            if (message != null)
+                telegram.ExplodeAsync(message);
 
             return View();
         }

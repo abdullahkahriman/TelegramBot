@@ -1,13 +1,12 @@
 ﻿using Newtonsoft.Json.Linq;
-using RestSharp;
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Net;
 using System.Text;
-using System.Threading;
 using System.Threading.Tasks;
+using TelegramBot.Core.Model;
 using static TelegramBot.Core.Static;
 
 namespace TelegramBot.Core
@@ -107,18 +106,49 @@ namespace TelegramBot.Core
             }
         }
 
+        async void SendPollAsync(string question, string[] options, bool isAnonymous = true)
+        {
+            if (!string.IsNullOrEmpty(this._chatID))
+            {
+                var obj = new
+                {
+                    chat_id = this._chatID,
+                    question = question,
+                    is_anonymous = isAnonymous,
+                    options = options.ToJson()
+                };
+                await RequestAsync("sendPoll", obj);
+            }
+        }
+
+        private string GetStreamReader(Stream stream)
+        {
+            using (StreamReader streamReader = new StreamReader(stream))
+            {
+                string response = streamReader.ReadToEnd();
+                return response;
+            }
+        }
+
         public Message GetChat(Stream stream)
         {
             try
             {
-                using (StreamReader streamReader = new StreamReader(stream))
+                string response = GetStreamReader(stream);
+                JObject jObject = JObject.Parse(response);
+                Message message = jObject.SelectToken("message")?.ToObject<Message>();
+                this._chatID = message?.Chat?.ID;
+
+                //Poll poll = jObject.SelectToken("poll")?.ToObject<Poll>();
+
+                PollAnswer pollAnswer = jObject.SelectToken("poll_answer")?.ToObject<PollAnswer>();
+
+                if (pollAnswer != null)
                 {
-                    string response = streamReader.ReadToEnd();
-                    JObject jObject = JObject.Parse(response);
-                    Message message = jObject.SelectToken("message").ToObject<Message>();
-                    this._chatID = message.Chat.ID;
-                    return message;
+                    this._chatID = pollAnswer.User.ID;
+                    SendMessageAsync("Teşekkürler");
                 }
+                return message;
             }
             catch (Exception e)
             {
@@ -136,8 +166,9 @@ namespace TelegramBot.Core
                 switch (messageText)
                 {
                     case "/start":
-                        result = string.Format(@"Hoş geldin, {0}
-Film önerisi /film, dizi önerisi için /dizi yazman yeterli.", message.Chat.Name);
+                        result = string.Format(@"Hoş geldin {0},
+Film önerisi için /film,
+dizi önerisi için /dizi yazman yeterli.", message.Chat.Name);
                         break;
                     case "selam":
                         result = $"Selam :)";
@@ -147,6 +178,9 @@ Film önerisi /film, dizi önerisi için /dizi yazman yeterli.", message.Chat.Na
                         break;
                     case "/animasyon":
                         SendDiceAsync();
+                        break;
+                    case "/anket":
+                        SendPollAsync("Bu bir test anketidir", new string[] { "Cevap 1", "Cevap 2", "Cevap 3", "Cevap 4", "Cevap 5" }, false);
                         break;
                     case "/film":
                         SendChatActionAsync(Static.ChatAction.Photo);
@@ -244,8 +278,8 @@ Film önerisi /film, dizi önerisi için /dizi yazman yeterli.", message.Chat.Na
                     StreamReader sr = new StreamReader(response.GetResponseStream());
 
                     List<GithubMovie> result = sr.ReadToEnd().FromJson<List<GithubMovie>>()
-                    .Take(3)
                     .OrderBy(c => Guid.NewGuid())
+                    .Take(5)
                     .ToList();
                     return result;
                 }
