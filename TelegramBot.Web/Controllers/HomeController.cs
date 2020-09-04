@@ -9,7 +9,7 @@ namespace TelegramBot.Web.Controllers
         public IActionResult Index()
         {
             Telegram telegram = new Telegram(Static.TOKEN);
-            telegram.SetWebhookAsync("https://4d2fc7a4ad54.ngrok.io");
+            telegram.SetWebhookAsync("https://3042cb1b504e.ngrok.io");
 
             Message message = telegram.GetChat(Request.Body);
             if (message != null)

@@ -4,9 +4,11 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Net;
+using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
 using TelegramBot.Core.Model;
+using TelegramBot.Core.TmdbAPI;
 using static TelegramBot.Core.Static;
 
 namespace TelegramBot.Core
@@ -36,14 +38,15 @@ namespace TelegramBot.Core
             }
         }
 
-        public async void SendMessageAsync(string message)
+        public async void SendMessageAsync(string message, ReplyKeyboardMarkup markup = null)
         {
             if (!string.IsNullOrEmpty(message) && !string.IsNullOrEmpty(this._chatID))
             {
                 var obj = new
                 {
                     chat_id = this._chatID,
-                    text = message
+                    text = message,
+                    reply_markup = markup != null ? markup.ToJson() : ""
                 };
                 await RequestAsync("sendMessage", obj);
             }
@@ -183,23 +186,24 @@ dizi önerisi için /dizi yazman yeterli.", message.Chat.Name);
                         SendPollAsync("Bu bir test anketidir", new string[] { "Cevap 1", "Cevap 2", "Cevap 3", "Cevap 4", "Cevap 5" }, false);
                         break;
                     case "/film":
-                        SendChatActionAsync(Static.ChatAction.Photo);
-
-                        List<GithubMovie> movies = await RequestGithubMovieAsync();
-                        if (movies != null)
-                        {
-                            List<InputMediaPhoto> inputMediaPhotos = movies.Select(c => new InputMediaPhoto()
-                            {
-                                media = c.posterurl,
-                                caption = string.Format("Title: {0}\nYear: {1}\nActors: {2}", c.title, c.year, string.Join(", ", c.actors))
-                            }).ToList();
-                            SendMediaPhotoGroupAsync(inputMediaPhotos);
-                        }
-                        else
-                            result = "Üzgünüm, film bulamadım.";
+                        SendMessageAsync("Tür seç", KeyboardButtons());
                         break;
                     case "/dizi":
-                        result = "Üzgünüm, şu an bu kısım aktif değil.";
+                        SendMessageAsync("Tür seç", KeyboardButtons());
+                        break;
+                    case var _ when messageText.Replace(" ", "") == SectionEnum.TheBest.ToString().ToLower() ||
+                                    messageText == SectionEnum.Trending.ToString().ToLower() ||
+                                    messageText == SectionEnum.TopRated.ToString().ToLower() ||
+                                    messageText == SectionEnum.Upcoming.ToString().ToLower() ||
+                                    messageText == SectionEnum.Action.ToString().ToLower() ||
+                                    messageText == SectionEnum.Crime.ToString().ToLower() ||
+                                    messageText == SectionEnum.Comedy.ToString().ToLower() ||
+                                    messageText == SectionEnum.History.ToString().ToLower() ||
+                                    messageText == SectionEnum.Horror.ToString().ToLower() ||
+                                    messageText == SectionEnum.Mystery.ToString().ToLower() ||
+                                    messageText == SectionEnum.Romance.ToString().ToLower() ||
+                                    messageText == SectionEnum.Thriller.ToString().ToLower():
+                        CastInputMediaAsync(messageText.Replace(" ", ""));
                         break;
                     default:
                         result = "Üzgünüm, anlamadım.";
@@ -245,7 +249,7 @@ dizi önerisi için /dizi yazman yeterli.", message.Chat.Name);
                 }
                 catch (Exception e)
                 {
-                    Console.WriteLine("Error: " + e.Message);
+                    throw new Exception("Error: " + e.Message);
                 }
                 finally
                 {
@@ -296,6 +300,117 @@ dizi önerisi için /dizi yazman yeterli.", message.Chat.Name);
             });
 
             return responses;
+        }
+
+        async Task<TmdbResult[]> RequestTMDBAPIAsync(string url)
+        {
+            HttpWebRequest request = null;
+            WebResponse response = null;
+
+            TmdbResult[] responses = await Task.Run(() =>
+           {
+               try
+               {
+                   request = (HttpWebRequest)WebRequest.Create(url);
+                   request.Method = "GET";
+                   request.Timeout = 20000;
+                   request.Accept = "application/json";
+                   request.ContentType = "application/json; charset=UTF-8";
+
+                   response = request.GetResponse();
+                   StreamReader sr = new StreamReader(response.GetResponseStream());
+
+                   var result = JObject.Parse(sr.ReadToEnd())["results"].ToObject<TmdbResult[]>()
+                   .Where(c => !string.IsNullOrEmpty(c.PosterImagePath) || !string.IsNullOrEmpty(c.BackdropImagePath))
+                   .OrderBy(c => Guid.NewGuid())
+                   .Take(5)
+                   .ToArray();
+
+                   return result;
+               }
+               catch (Exception e)
+               {
+                   Console.WriteLine("Error: " + e.Message);
+               }
+               finally
+               {
+                   if (response != null)
+                       response.Close();
+               }
+               return null;
+           });
+
+            return responses;
+        }
+
+        /// <summary>
+        /// Dizi ve film(ler) için kulanılacak.
+        /// </summary>
+        /// <returns></returns>
+        private ReplyKeyboardMarkup KeyboardButtons()
+        {
+            var rmu = new ReplyKeyboardMarkup();
+
+            rmu.Keyboard =
+            new KeyboardButton[][]
+            {
+                    new KeyboardButton[]
+                    {
+                        new KeyboardButton(){ Text="The Best",CallbackData=TmdbApiUrl.Section.TheBest },
+                        new KeyboardButton(){ Text="Trending", CallbackData = TmdbApiUrl.Section.Trending },
+                        new KeyboardButton(){ Text="TopRated",CallbackData=TmdbApiUrl.Section.TopRated },
+                        new KeyboardButton(){ Text="Upcoming",CallbackData=TmdbApiUrl.Section.Upcoming }
+                    },
+                    new KeyboardButton[]
+                    {
+                        new KeyboardButton(){ Text="Action", CallbackData=TmdbApiUrl.Section.Action },
+                        new KeyboardButton(){ Text="Crime", CallbackData=TmdbApiUrl.Section.Crime },
+                        new KeyboardButton(){ Text="Comedy", CallbackData=TmdbApiUrl.Section.Comedy },
+                        new KeyboardButton(){ Text="History",CallbackData=TmdbApiUrl.Section.History }
+                    },
+                    new KeyboardButton[]
+                    {
+                        new KeyboardButton(){ Text="Horror", CallbackData=TmdbApiUrl.Section.Horror },
+                        new KeyboardButton(){ Text="Mystery", CallbackData=TmdbApiUrl.Section.Mystery },
+                        new KeyboardButton(){ Text="Romance", CallbackData=TmdbApiUrl.Section.Romance },
+                        new KeyboardButton(){ Text="Thriller", CallbackData=TmdbApiUrl.Section.Thriller }
+                    }
+            };
+
+            return rmu;
+        }
+
+        private async void CastInputMediaAsync(string sectionName)
+        {
+            SendChatActionAsync(Static.ChatAction.Photo);
+
+            string url = string.Empty;
+
+            TmdbApiUrl.SetType(TmdbTypeEnum.Movie); //or tv?
+
+            Type type = typeof(TmdbApiUrl.Section);
+            FieldInfo[] fields = type.GetFields(BindingFlags.Static | BindingFlags.Public);
+            foreach (FieldInfo fi in fields)
+            {
+                if (fi.Name.ToLower().Equals(sectionName))
+                {
+                    url = fi.GetValue(null).ToString();
+                    break;
+                }
+            }
+
+            var tv = await RequestTMDBAPIAsync(url);
+            if (tv != null)
+            {
+                List<InputMediaPhoto> inputMediaPhotos = tv.Select(c => new InputMediaPhoto()
+                {
+                    media = c.PosterImagePath ?? c.BackdropImagePath,
+                    caption = string.Format("{0}", c.title)
+                }).ToList();
+                SendMediaPhotoGroupAsync(inputMediaPhotos);
+            }
+            else
+                SendMessageAsync("Üzgünüm, sonuç bulamadım.");
         }
     }
 }
