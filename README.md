@@ -12,8 +12,5 @@ Telegram bot
 
 ![Ngrok](https://github.com/abdullahkahriman/TelegramBot/blob/master/TelegramBot.Web/wwwroot/img/ngrok.png?raw=true)
 
+## Video
 [![Watch the video](https://i.imgur.com/vKb2F1B.png)](https://streamable.com/a94heg)
-
-<video src="" />
-
-Örnek video'yu <a href="https://github.com/abdullahkahriman/TelegramBot/blob/master/TelegramBot-app.mp4?raw=true">indirebilirsin.</a>
